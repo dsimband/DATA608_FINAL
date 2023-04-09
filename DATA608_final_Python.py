@@ -13,7 +13,6 @@ import dash_mantine_components as dmc
 import pandas as pd
 import plotly.express as px
 import dash_bootstrap_components as dbc
-import folium
 
 
 
@@ -25,26 +24,16 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
 
-m = folium.Map(location=[40.730610, -73.935242],zoom_start=13, tiles = 'CartoDB Positron')
-m.save('./output/trip_map.html')
-
-
 
 
 app.layout = html.Div(id = 'parent', children = [
-    html.H1(id = 'H1', children = 'DATA608 Module 4', style = {'textAlign':'center',
+    html.H1(id = 'H1', children = 'DATA608 Final Project', style = {'textAlign':'center',
                                             'marginTop':20,'marginBottom':20,
                                             'marginLeft':20,'marginRight':20}),
 
 
 
-        m,
-    
-
-        html.Div([dcc.Graph(id = 'bar_plot')] ,style = {'textAlign':'center','marginTop':10,'marginBottom':10}),   
-        
-        html.Div([]),
-               
+              
              
         
     ],style = {'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,
@@ -59,8 +48,6 @@ app.layout = html.Div(id = 'parent', children = [
     Input("transfer-list-trees", "value"),
 )
 def graph_update(boro_value, tree_value):
-   
-    
    return None, None
     
    
