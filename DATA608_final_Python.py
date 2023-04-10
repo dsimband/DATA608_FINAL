@@ -92,9 +92,10 @@ app.layout = html.Div(id = 'parent', children = [
 @app.callback(
     Output("forcast_plot", "figure"),
 )
-def graph_update(boro_value, tree_value):
+def graph_update():
     
-    fig = px.bar(bike_df, y='bikes_chng', height=800)
+    df = bike_df
+    fig = px.scatter(df, y='bikes_chng', height=800)
 
     
     return fig
@@ -107,9 +108,6 @@ def graph_update(boro_value, tree_value):
 
 if __name__ == '__main__': 
     app.run_server()
-    
-    
-    
     
     
     
