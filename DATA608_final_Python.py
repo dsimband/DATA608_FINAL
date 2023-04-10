@@ -26,48 +26,16 @@ server = app.server
 
 
 # Config 
-
 station_lst = ['7617.07']
+bike_file = 'https://raw.githubusercontent.com/dsimband/DATA608_FINAL/main/data/bike.csv'
 
 
-config_df = pd.DataFrame({
-                        'file_url' : ['https://s3.amazonaws.com/tripdata/202302-citibike-tripdata.csv.zip',
-                                          'https://s3.amazonaws.com/tripdata/202303-citibike-tripdata.csv.zip'],
-                        'save_path' : ['./data/202302-citibike-tripdata.csv.zip',
-                                           './data/202303-citibike-tripdata.csv.zip'],
-                        'read_file' : ['202302-citibike-tripdata.csv','202303-citibike-tripdata.csv'],
-                        'out_file' : ['./data/202302-citibike.csv','./data/202303-citibike.csv']
-    
-                    })
-
-
-
-
-# Functions
-def get_bike_data():
-    
-    df_lst = []
-    
-    for index,row in config_df.iterrows():
-        df = pd.read_csv(row['out_file'],parse_dates=['date'],dtype = {'station_id': str})
-        df_lst.append(df)
-     
-        
-    bike_df =   pd.concat(df_lst)
-    bike_df['ride_date'] = bike_df['date']
-    bike_df = bike_df.set_index('date')
-    bike_df.sort_index(inplace=True)
-    
-    return bike_df
-        
-        
-    
 
 
 
 
 # Data
-bike_df = get_bike_data()
+bike_df = pd.read_csv(bike_file, parse_dates=['ride_date'],dtype = {'station_id': str})
 
 
 
@@ -81,8 +49,10 @@ app.layout = html.Div(id = 'parent', children = [
 
 
     html.Div([dcc.Graph(id = 'forcast_plot')] ,style = {'textAlign':'center','marginTop':10,'marginBottom':10}),   
+    html.Div(["Input: ",dcc.Input(id='input-m', value='initial value m', type='text')]),
               
-             
+    
+    
         
     ],style = {'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,
               'font-size': 10,})
@@ -91,11 +61,13 @@ app.layout = html.Div(id = 'parent', children = [
 
 @app.callback(
     Output("forcast_plot", "figure"),
+    Input("input_m", "value"),
 )
-def graph_update():
+def graph_update(m):
     
-    df = bike_df
-    fig = px.scatter(df, y='bikes_chng', height=800)
+    #print(bike_df.shape)
+    fig = px.bar(bike_df, y='bikes_chng', height=800)
+    fig.update_layout(template="simple_white", title="Bike Demand")
 
     
     return fig

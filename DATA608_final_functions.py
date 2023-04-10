@@ -122,13 +122,6 @@ def merge_in_out_data(start_df, end_df, fltr_df):
 
 
 
-def write_bike_data(bike_df, file_name):
-    bike_df.to_csv(file_name)
-    
-
-
-
-
          
       
       
