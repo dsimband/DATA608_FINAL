@@ -32,6 +32,7 @@ config_df = pd.DataFrame({
                     })
 
 
+
             
    
 # Download and Processing Bike Files
@@ -133,6 +134,7 @@ if __name__ == "__main__":
     
     
     for index,row in config_df.iterrows():
+        print(index , ') ' , row)
         download_url(row['file_url'],row['save_path'])
         df = read_local_file(row['save_path'],row['read_file'])
         
@@ -144,13 +146,19 @@ if __name__ == "__main__":
         bike_df = merge_in_out_data(start_df, end_df, fltr_df)
         bike_df.to_csv(row['out_file'], index=False)
         
+        bike_df['ride_date'] = bike_df['date']
+        bike_df = bike_df.set_index('date')
+        bike_df.sort_index(inplace=True)
+        
+        
+        print(bike_df.head(20))
         df_lst.append(bike_df)
         
         
         
     df =   pd.concat(df_lst)
-    df['ride_date'] = bike_df['date']
-    df = df.set_index('date')
+    #df['ride_date'] = bike_df['date']
+    #df = df.set_index('date')
     df.sort_index(inplace=True)
     df.to_csv(bike_file, index=False)
     
