@@ -19,6 +19,8 @@ from pmdarima.model_selection import train_test_split
 import numpy as np
 import matplotlib.pyplot as plt
 
+import datetime
+
 
 
 
@@ -28,6 +30,9 @@ server = app.server
 
 
 
+
+
+# Functions
 def create_table(df):
     columns, values = df.columns, df.values
     header = [html.Tr([html.Th(col) for col in columns])]
@@ -63,10 +68,10 @@ def run_arima_model(df):
     pred_df.columns = ['bikes_chng_pred']
     
     
-    pred_df['ride_date'] = test_df['ride_date']
-    #test_df['bikes_chng_pred'] = pred_df['bikes_chng_pred']
+    #pred_df['ride_date'] = test_df['ride_date']
+    test_df['bikes_chng_pred'] = pred_df['bikes_chng_pred']
         
-    return pred_df
+    return test_df
 
 
 
@@ -84,18 +89,72 @@ bike_file = 'https://raw.githubusercontent.com/dsimband/DATA608_FINAL/main/data/
 bike_df = pd.read_csv(bike_file, parse_dates=['ride_date'],dtype = {'station_id': str})
 bike_df = bike_df.sort_values('ride_date', ascending=True)
 
+# s_date = bike_df.copy().iloc[-1]['ride_date']
+# e_date = s_date + datetime.timedelta(days=30)
+# step_date = (e_date - s_date) / 10
+
+
+model_df = pd.DataFrame({'label':[1],
+                         'value':'ARIMA'})
+
+station_df = bike_df[['station_id','station_name']].drop_duplicates(keep='first')
+station_df.rename(columns = {'station_id':'label',
+                             'station_name':'value'}, inplace = True)
+
+
+s = model_df.set_index('label')['value'].to_dict()
 
 
 # Dsiplay
-
 app.layout = html.Div(id = 'parent', children = [
     html.H1(id = 'H1', children = 'DATA608 Final Project', style = {'textAlign':'center',
                                             'marginTop':20,'marginBottom':20,
                                             'marginLeft':20,'marginRight':20}),
 
 
-    html.Div([dcc.Graph(id = 'forcast_plot')] ,style = {'textAlign':'center','marginTop':10,'marginBottom':10}),   
-    html.Div(["Input: ",dcc.Input(id='input_m', value='initial value m', type='text')]),
+    html.Div([
+        dmc.LoadingOverlay(
+            html.Div([dcc.Graph(id = 'forcast_plot')] ,
+                     style = {'textAlign':'center','marginTop':10,'marginBottom':10}),
+        ),
+    ]),  
+    
+    
+    
+    
+   
+   html.Div([
+       html.Div([
+           html.Div(['Select % of Training Data To Use:'], style={'text-align':'left'}),
+           dcc.Slider(id='my-slider', value=100, min=0, max=100, step=20),
+        ], style ={'width':'40%','display':'inline-block'} ),  
+       
+       html.Div([
+           html.Div(['Select Prediction Range:'], style={'text-align':'left'}),
+           dcc.Slider(id='my-slider2', value=100, min=0, max=100, step=20),
+        ], style ={'width':'40%', 'display':'inline-block', } ), 
+    ],style={'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,'font-size': 10,}),
+    
+ 
+   html.Div([
+       html.Div([
+           html.Div(['Select Model:'], style={'text-align':'left'}),
+           #html.Div( dcc.Dropdown(['NYC', 'MTL', 'SF'], 'NYC', id='model_id'),),
+           html.Div( dcc.Dropdown(options=model_df.set_index('label')['value'].to_dict(), id='model_id'),),
+        ], style ={'width':'30%','display':'inline-block'} ),  
+       
+       html.Div([
+           html.Div(['Select Station:'], style={'text-align':'left'}),
+           html.Div( dcc.Dropdown(options=station_df.set_index('label')['value'].to_dict(), id='station_id'),),
+        ], style ={'width':'30%', 'display':'inline-block', } ),   
+    ],style={'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,'font-size': 10,}),   
+   
+   
+   
+   html.Div([html.Button('Predict', id='button'),]),
+  
+   
+    
               
     html.Div([
         html.Div([
@@ -116,7 +175,7 @@ app.layout = html.Div(id = 'parent', children = [
 @app.callback(
     Output("bike_table", "children"),
     Output("forcast_plot", "figure"),
-    Input("input_m", "value"),
+    Input("model_id", "value"),
 )
 def graph_update(m):
     
