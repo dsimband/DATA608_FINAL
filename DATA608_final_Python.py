@@ -8,7 +8,7 @@ Created on Wed Mar 22 22:07:54 2023
 
 
 
-from dash import Dash, dcc, Input, Output, html
+from dash import Dash, dcc, Input, Output, html, ctx
 import dash_mantine_components as dmc
 import pandas as pd
 import plotly.express as px
@@ -20,7 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import datetime
-
+import math 
 
 
 
@@ -41,18 +41,24 @@ def create_table(df):
     return table
 
 
-def run_arima_model(df):
+def run_arima_model(df,train_per,pred_per):
     
     
-    #df = bike_df
+    # df = bike_df
+    # train_per = 80
+    # pred_per = 40
     
     splt_index = round(df.shape[0] * 0.8)
     splt_offset = df.shape[0] - splt_index
     
     
     train_df = df[:splt_index]
+    t_idx = round(train_df.shape[0] * (1-train_per/100))
+    train_df = train_df[t_idx:].copy()
     #test_df = df[-splt_offset:]
     test_df = df[splt_index:]
+    t_idx = round(test_df.shape[0] * pred_per/100)
+    test_df = test_df[:t_idx].copy()
     
     arima_model = pm.auto_arima(train_df[['bikes_chng']], test='adf', 
                              #max_p=3, max_d=3, max_q=3, 
@@ -70,8 +76,10 @@ def run_arima_model(df):
     
     #pred_df['ride_date'] = test_df['ride_date']
     test_df['bikes_chng_pred'] = pred_df['bikes_chng_pred']
+    
+    df = pd.concat([train_df,test_df])
         
-    return test_df
+    return df
 
 
 
@@ -89,9 +97,6 @@ bike_file = 'https://raw.githubusercontent.com/dsimband/DATA608_FINAL/main/data/
 bike_df = pd.read_csv(bike_file, parse_dates=['ride_date'],dtype = {'station_id': str})
 bike_df = bike_df.sort_values('ride_date', ascending=True)
 
-# s_date = bike_df.copy().iloc[-1]['ride_date']
-# e_date = s_date + datetime.timedelta(days=30)
-# step_date = (e_date - s_date) / 10
 
 
 model_df = pd.DataFrame({'label':[1],
@@ -126,12 +131,12 @@ app.layout = html.Div(id = 'parent', children = [
    html.Div([
        html.Div([
            html.Div(['Select % of Training Data To Use:'], style={'text-align':'left'}),
-           dcc.Slider(id='my-slider', value=100, min=0, max=100, step=20),
+           dcc.Slider(id='train_per', value=100, min=0, max=100, step=20),
         ], style ={'width':'40%','display':'inline-block'} ),  
        
        html.Div([
            html.Div(['Select Prediction Range:'], style={'text-align':'left'}),
-           dcc.Slider(id='my-slider2', value=100, min=0, max=100, step=20),
+           dcc.Slider(id='pred_per', value=100, min=0, max=100, step=20),
         ], style ={'width':'40%', 'display':'inline-block', } ), 
     ],style={'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,'font-size': 10,}),
     
@@ -139,21 +144,31 @@ app.layout = html.Div(id = 'parent', children = [
    html.Div([
        html.Div([
            html.Div(['Select Model:'], style={'text-align':'left'}),
-           #html.Div( dcc.Dropdown(['NYC', 'MTL', 'SF'], 'NYC', id='model_id'),),
-           html.Div( dcc.Dropdown(options=model_df.set_index('label')['value'].to_dict(), id='model_id'),),
+           html.Div( dcc.Dropdown(options=model_df.set_index('label')['value'].to_dict(), id='model_id', 
+                                  value=1, clearable=False),),
         ], style ={'width':'30%','display':'inline-block'} ),  
        
        html.Div([
            html.Div(['Select Station:'], style={'text-align':'left'}),
-           html.Div( dcc.Dropdown(options=station_df.set_index('label')['value'].to_dict(), id='station_id'),),
+           html.Div( dcc.Dropdown(options=station_df.set_index('label')['value'].to_dict(), id='station_id',
+                                  value='7617.07', clearable=False),),
         ], style ={'width':'30%', 'display':'inline-block', } ),   
     ],style={'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,'font-size': 10,}),   
    
    
    
-   html.Div([html.Button('Predict', id='button'),]),
+   html.Div([html.Button('Predict', id='button', n_clicks=0),]),
   
-   
+    
+    html.Div([
+        dmc.Stack(
+            children=[
+                dmc.Divider(variant="solid"),
+                dmc.Divider(variant="dashed"),
+                dmc.Divider(variant="dotted"),
+            ],style={'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,'font-size': 10,}
+        ),
+    ]),
     
               
     html.Div([
@@ -175,22 +190,49 @@ app.layout = html.Div(id = 'parent', children = [
 @app.callback(
     Output("bike_table", "children"),
     Output("forcast_plot", "figure"),
+    Input("station_id", "value"),
+    Input("train_per", "value"),
+    Input("pred_per", "value"),
     Input("model_id", "value"),
+    Input('button', 'n_clicks'),
 )
-def graph_update(m):
+def graph_update(station_id,train_per,pred_per,model_id,n_clicks):
+    
+    print(station_id)
+    print(train_per)
+    print(pred_per)
+    print(model_id)
+    print(n_clicks)
     
     
-    pred_df = run_arima_model(bike_df)
     
-    #print(bike_df.shape)
-    #fig = px.bar(bike_df, y='bikes_chng', height=800)
-    #fig.update_layout(template="simple_white", title="Bike Demand")
+    #if (math.isnan(n_clicks)) :
+    if not "button" == ctx.triggered_id:
+        fig = px.line(height=400)
+        fig.update_layout(template="simple_white", title="Citi Bike Forecast")
+        fig.update_xaxes(visible=False)
+        fig.update_yaxes(visible=False)
+        return None, fig
     
-    #fig = px.line(bike_df, x='ride_date', y='bikes_chng', height=800) 
-    #fig.add_scatter(x=pred_df['ride_date'], y=pred_df['bikes_chng'])
     
-    fig = px.line(bike_df, x='ride_date', y='bikes_chng', height=800) 
-    fig.add_scatter(x=pred_df['ride_date'], y=pred_df['bikes_chng_pred'])
+    
+    # filter
+    b_df = bike_df[(bike_df['station_id'] == station_id)].copy()
+    
+    
+    # predictioin
+    pred_df = run_arima_model(b_df,train_per,pred_per)
+    
+    #
+    
+    
+    # create 
+    #fig = px.line(bike_df, x='ride_date', y='bikes_chng', height=400) 
+    fig = px.line(height=400)
+    fig.add_scatter(x=pred_df['ride_date'], y=pred_df['bikes_chng'],
+                    marker=dict(size=20, color="lightgray"), name='actual')
+    fig.add_scatter(x=pred_df['ride_date'], y=pred_df['bikes_chng_pred'], name='forecast')
+    fig.update_layout(template="simple_white", title="Citi Bike Forecast")
     
     
     bike_table = create_table(pred_df)
@@ -209,7 +251,6 @@ if __name__ == '__main__':
     
     
     
-    
-    
+
     
     

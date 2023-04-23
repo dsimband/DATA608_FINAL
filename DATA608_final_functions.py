@@ -18,7 +18,7 @@ path_src = './data/2020'
 path = './data'
 #csv_files = glob.glob(path_src + "/*.csv")
 #bike_id = 37078
-station_lst = ['7617.07']
+station_lst = ['7646.04','7619.05','7631.23','7617.07']
 
 bike_file = './data/bike.csv'
 
