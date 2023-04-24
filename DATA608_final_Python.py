@@ -62,7 +62,7 @@ def process_bike_table(df):
 
 
 
-
+ 
 def run_arima_model(df,train_per,pred_per):
     
     
