@@ -284,7 +284,7 @@ app.layout = html.Div(id = 'parent', children = [
        html.Div([
            html.Div(['Select Model:'], style={'text-align':'left'}),
            html.Div( dcc.Dropdown(options=model_df.set_index('label')['value'].to_dict(), id='model_id', 
-                                  value=1, clearable=True),),
+                                  value=1, clearable=False),),
         ], style ={'width':'30%','display':'inline-block'} ),  
        
        html.Div([
