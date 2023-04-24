@@ -51,21 +51,12 @@ def create_table(df):
 
 def process_bike_table(df):
     
-    c_df = df.copy()
-    
-    #c_df = bike_df.copy()
-    
-    c_df['ride_date'] = c_df['ride_date'].dt.floor('D')
-    
-    c_df = c_df.groupby(['station_id','station_name','ride_date'])[['bikes_out','bikes_in','bikes_chng','bikes_chng_pred']].sum().reset_index()
-    
-    
+    c_df = df.copy()   
+    c_df['ride_date'] = c_df['ride_date'].dt.floor('D')   
+    c_df = c_df.groupby(['station_id','station_name','ride_date'])[['bikes_out','bikes_in','bikes_chng','bikes_chng_pred']].sum().reset_index()  
     c_df = c_df[['station_id','ride_date','station_name','bikes_out','bikes_in','bikes_chng','bikes_chng_pred']] 
-    
     c_df = c_df.dropna()
-    
-    #print(c_df)
-    
+        
     return c_df
 
 
