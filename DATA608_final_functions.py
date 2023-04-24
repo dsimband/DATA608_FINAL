@@ -86,7 +86,7 @@ def process_bike_out_data(df):
                     'started_date': 'date'}, axis=1, inplace=True)
     
     return start_df
-    
+        
 
 
 
