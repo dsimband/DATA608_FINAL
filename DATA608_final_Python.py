@@ -14,8 +14,8 @@ import pandas as pd
 import plotly.express as px
 import dash_bootstrap_components as dbc
 
-import pmdarima as pm
-from pmdarima.model_selection import train_test_split
+#import pmdarima as pm
+#from pmdarima.model_selection import train_test_split
 from statsmodels.tsa.api import Holt, ExponentialSmoothing
 from neuralprophet import NeuralProphet
 
@@ -82,19 +82,21 @@ def run_arima_model(df,train_per,pred_per):
     t_idx = round(test_df.shape[0] * pred_per/100)
     test_df = test_df[:t_idx].copy()
     
-    arima_model = pm.auto_arima(train_df[['bikes_chng']], test='adf', 
-                             #max_p=3, max_d=3, max_q=3, 
-                             #max_P=3, max_D=2, max_Q=3,
-                             seasonal=True, 
-                             m=7,
-                             trace=True,
-                             error_action='ignore',  
-                             suppress_warnings=True, 
-                             stepwise=True)
+    # arima_model = pm.auto_arima(train_df[['bikes_chng']], test='adf', 
+    #                          #max_p=3, max_d=3, max_q=3, 
+    #                          #max_P=3, max_D=2, max_Q=3,
+    #                          seasonal=True, 
+    #                          m=7,
+    #                          trace=True,
+    #                          error_action='ignore',  
+    #                          suppress_warnings=True, 
+    #                          stepwise=True)
     
-    pred_df = pd.DataFrame(arima_model.predict(n_periods = test_df.shape[0]),index=test_df.index)
-    pred_df.columns = ['bikes_chng_pred']
     
+    # pred_df = pd.DataFrame(arima_model.predict(n_periods = test_df.shape[0]),index=test_df.index)
+    # pred_df.columns = ['bikes_chng_pred']
+    
+    pred_df = pd.DataFrame()
     
     #pred_df['ride_date'] = test_df['ride_date']
     test_df['bikes_chng_pred'] = pred_df['bikes_chng_pred']
