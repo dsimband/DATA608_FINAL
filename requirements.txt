@@ -3,7 +3,6 @@ dash==2.9.1
 dash-core-components==2.0.0
 dash-html-components==2.0.0
 dash-table==5.0.0
-Flask==2.2.3
 gunicorn==20.1.0
 itsdangerous==2.1.2
 Jinja2==3.1.2
@@ -15,8 +14,6 @@ dash_mantine_components==0.12.0
 dash_bootstrap_components==1.4.1
 pandas==1.5.3
 numpy==1.23.5
-scipy==1.10.1
-scikit-learn==1.2.2
 Statsmodels==0.13.5
 pmdarima==2.0.3
 neuralprophet==0.4.2
