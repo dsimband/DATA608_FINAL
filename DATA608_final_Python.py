@@ -82,19 +82,10 @@ def process_bike_table(df):
 ##  Arima Model
 ##
 def run_arima_model(df,train_per,pred_per):
-    
-    
-   # df = bike_df[(bike_df['station_id'] == '7617.07')].copy()
-   # train_per = 100
-   # pred_per = 100
-    
-    
+     
     # Split Data
    splt_index = round(df.shape[0] * 0.8)
     
-    # train_df = df[:splt_index]
-    # t_idx = round(train_df.shape[0] * (1-train_per/100))
-    # train_df = train_df[t_idx:].copy()
     
     # Train data prep
    train_df = df[:splt_index]
@@ -104,9 +95,6 @@ def run_arima_model(df,train_per,pred_per):
    train.set_index('ride_date', inplace=True)
    train = train.resample('1H').sum()
 
-   # test_df = df[splt_index:]
-   # t_idx = round(test_df.shape[0] * pred_per/100)
-   # test_df = test_df[:t_idx].copy()
    
    
    # Test data prop
@@ -131,12 +119,10 @@ def run_arima_model(df,train_per,pred_per):
    ar_df = test.copy()
    ar_df['bikes_chng_pred'] = forecast
    
-   #print(ar_df)
 
    ar_df.reset_index(inplace=True)
    ar_df = ar_df[['ride_date','bikes_chng_pred']]
 
-   #print(ar_df)
     
    df = pd.concat([train_df,test_df])
    df = pd.merge(df, ar_df, how="outer", on = ["ride_date"])

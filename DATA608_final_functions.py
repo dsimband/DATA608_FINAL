@@ -6,19 +6,27 @@ Created on Wed Mar 22 22:07:54 2023
 @author: dsimbandumwe
 """
 
-#import numpy as np
+
 import pandas as pd
-#import glob
 import requests 
 import zipfile
-#import pandas as pd
+
+
+
+
+############################################################################
+##
+## COnfig and Data
+##
+############################################################################
+
 
 
 path_src = './data/2020'
 path = './data'
-#csv_files = glob.glob(path_src + "/*.csv")
-#bike_id = 37078
-station_lst = ['7646.04','7619.05','7631.23','7617.07']
+
+
+station_lst = ['7646.04','7619.05','7631.23','7617.07','6266.06','6224.03','6306.01','5905.14','5980.07','5905.12']
 
 bike_file = './data/bike.csv'
 
@@ -33,9 +41,18 @@ config_df = pd.DataFrame({
 
 
 
+
+############################################################################
+##
+## Functions
+##
+############################################################################
+
             
-   
-# Download and Processing Bike Files
+    
+##
+##  Download zip files
+##
 def download_url(url, save_path, chunk_size=128):
     r = requests.get(url, stream=True)
     with open(save_path, 'wb') as fd:
@@ -43,7 +60,9 @@ def download_url(url, save_path, chunk_size=128):
             fd.write(chunk)
 
 
-
+##
+##  Read Local File
+##
 def read_local_file(save_path, read_file):
     with zipfile.ZipFile(save_path) as z:
     
@@ -56,7 +75,9 @@ def read_local_file(save_path, read_file):
     return df
 
 
-
+##
+##  Clean up location data
+##
 def process_location_data(df):
     
     fltr_df = df[(df['start_station_id'].isin(station_lst))].copy()
@@ -72,7 +93,9 @@ def process_location_data(df):
 
 
 
-
+##
+##  Process Bike out Data
+##
 def process_bike_out_data(df):
     start_df = df[(df['start_station_id'].isin(station_lst))].copy()
     start_df['bikes_out'] = 0
@@ -91,7 +114,9 @@ def process_bike_out_data(df):
 
 
 
-    
+##
+##  Process Bike in Data
+##    
 def process_bike_in_data(df):
     end_df = df[(df['end_station_id'].isin(station_lst))].copy()
     end_df['bikes_in'] = 0
@@ -110,7 +135,9 @@ def process_bike_in_data(df):
 
 
 
-
+##
+##  Merge Trip in and Out Data
+##
 def merge_in_out_data(start_df, end_df, fltr_df):
     bike_df = pd.merge(start_df, end_df, how="outer", on = ["station_id","date"])
     bike_df = pd.merge(bike_df, fltr_df, how="right", on = ["station_id"])
@@ -125,16 +152,21 @@ def merge_in_out_data(start_df, end_df, fltr_df):
 
          
       
-      
-      
+############################################################################
+##
+## Main Application
+##
+############################################################################      
+
 if __name__ == "__main__":
     
     
     df_lst = []
     
-    
+    # Loop through files
     for index,row in config_df.iterrows():
-        print(index , ') ' , row)
+        
+        # Download File
         download_url(row['file_url'],row['save_path'])
         df = read_local_file(row['save_path'],row['read_file'])
         
@@ -151,14 +183,12 @@ if __name__ == "__main__":
         bike_df.sort_index(inplace=True)
         
         
-        print(bike_df.head(20))
+        # append dataframe to list
         df_lst.append(bike_df)
         
         
-        
+    # buidl final dataframe    
     df =   pd.concat(df_lst)
-    #df['ride_date'] = bike_df['date']
-    #df = df.set_index('date')
     df.sort_index(inplace=True)
     df.to_csv(bike_file, index=False)
     
