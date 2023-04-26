@@ -84,35 +84,65 @@ def process_bike_table(df):
 def run_arima_model(df,train_per,pred_per):
     
     
-    # Split Data
-    splt_index = round(df.shape[0] * 0.8)
+   # df = bike_df[(bike_df['station_id'] == '7617.07')].copy()
+   # train_per = 100
+   # pred_per = 100
     
-    train_df = df[:splt_index]
-    t_idx = round(train_df.shape[0] * (1-train_per/100))
-    train_df = train_df[t_idx:].copy()
+    
+    # Split Data
+   splt_index = round(df.shape[0] * 0.8)
+    
+    # train_df = df[:splt_index]
+    # t_idx = round(train_df.shape[0] * (1-train_per/100))
+    # train_df = train_df[t_idx:].copy()
+    
+    # Train data prep
+   train_df = df[:splt_index]
+   t_idx = round(train_df.shape[0] * (1-train_per/100))
+   train_df = train_df[t_idx:].copy()
+   train = train_df[['bikes_chng','ride_date']]
+   train.set_index('ride_date', inplace=True)
+   train = train.resample('1H').sum()
 
-    test_df = df[splt_index:]
-    t_idx = round(test_df.shape[0] * pred_per/100)
-    test_df = test_df[:t_idx].copy()
+   # test_df = df[splt_index:]
+   # t_idx = round(test_df.shape[0] * pred_per/100)
+   # test_df = test_df[:t_idx].copy()
+   
+   
+   # Test data prop
+   test_df = df[splt_index:]
+   t_idx = round(test_df.shape[0] * pred_per/100)
+   test_df = test_df[:t_idx].copy()
+   test = test_df[['bikes_chng','ride_date']]
+   test.set_index('ride_date', inplace=True)
+   test = test.resample('1H').sum()
     
     
     # Initiate and Fit Model
-    arima_model = pm.auto_arima(train_df[['bikes_chng']], test='adf', 
+   arima_model = pm.auto_arima(train, test='adf', 
                               seasonal=True, 
                               error_action='ignore',  
                               suppress_warnings=True, 
                               stepwise=False)
     
+   forecast = arima_model.predict(len(test))
+   
+   
+   ar_df = test.copy()
+   ar_df['bikes_chng_pred'] = forecast
+   
+   #print(ar_df)
+
+   ar_df.reset_index(inplace=True)
+   ar_df = ar_df[['ride_date','bikes_chng_pred']]
+
+   #print(ar_df)
     
-    pred_df = pd.DataFrame(arima_model.predict(n_periods = test_df.shape[0]),index=test_df.index)
-    pred_df.columns = ['bikes_chng_pred']
-    
-    
-    # create return dataframe
-    test_df['bikes_chng_pred'] = pred_df['bikes_chng_pred']
-    df = pd.concat([train_df,test_df])
+   df = pd.concat([train_df,test_df])
+   df = pd.merge(df, ar_df, how="outer", on = ["ride_date"])
+   df.sort_values('ride_date', inplace=True)
         
-    return df
+   return df
 
 
 
