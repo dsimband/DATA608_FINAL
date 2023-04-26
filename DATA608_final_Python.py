@@ -1,31 +1,34 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+
 Created on Wed Mar 22 22:07:54 2023
 
 @author: dsimbandumwe
+
 """
 
 
 
 from dash import Dash, dcc, Input, Output, html, ctx
 import dash_mantine_components as dmc
-import pandas as pd
-import plotly.express as px
 import dash_bootstrap_components as dbc
 
+import pandas as pd
+import plotly.express as px
+
 import pmdarima as pm
-from pmdarima.model_selection import train_test_split
-from statsmodels.tsa.api import Holt, ExponentialSmoothing
+from statsmodels.tsa.api import ExponentialSmoothing
 from neuralprophet import NeuralProphet
 
 
 
-import numpy as np
-import matplotlib.pyplot as plt
 
-import datetime
-import math 
+############################################################################
+##
+## Define Application
+##
+############################################################################
 
 
 
@@ -37,7 +40,18 @@ server = app.server
 
 
 
-# Functions
+############################################################################
+##
+## Functions
+##
+############################################################################
+
+
+
+
+##
+##  Display Table
+##
 def create_table(df):
     columns, values = df.columns, df.values
     header = [html.Tr([html.Th(col) for col in columns])]
@@ -48,7 +62,9 @@ def create_table(df):
 
 
 
-
+##
+##  Process Bike Table
+##
 def process_bike_table(df):
     
     c_df = df.copy()   
@@ -62,61 +78,53 @@ def process_bike_table(df):
 
 
 
- 
+##
+##  Arima Model
+##
 def run_arima_model(df,train_per,pred_per):
     
     
-    # df = bike_df
-    # train_per = 80
-    # pred_per = 40
-    
+    # Split Data
     splt_index = round(df.shape[0] * 0.8)
-    splt_offset = df.shape[0] - splt_index
-    
     
     train_df = df[:splt_index]
     t_idx = round(train_df.shape[0] * (1-train_per/100))
     train_df = train_df[t_idx:].copy()
-    #test_df = df[-splt_offset:]
+
     test_df = df[splt_index:]
     t_idx = round(test_df.shape[0] * pred_per/100)
     test_df = test_df[:t_idx].copy()
     
+    
+    # Initiate and Fit Model
     arima_model = pm.auto_arima(train_df[['bikes_chng']], test='adf', 
-                              #max_p=3, max_d=3, max_q=3, 
-                              #max_P=3, max_D=2, max_Q=3,
                               seasonal=True, 
-                              m=7,
-                              trace=True,
                               error_action='ignore',  
                               suppress_warnings=True, 
-                              stepwise=True)
+                              stepwise=False)
     
     
     pred_df = pd.DataFrame(arima_model.predict(n_periods = test_df.shape[0]),index=test_df.index)
     pred_df.columns = ['bikes_chng_pred']
     
     
-    #pred_df['ride_date'] = test_df['ride_date']
+    # create return dataframe
     test_df['bikes_chng_pred'] = pred_df['bikes_chng_pred']
-    
     df = pd.concat([train_df,test_df])
         
     return df
 
 
 
-
+##
+##  ETS Model
+##
 def run_ets_model(df, train_per, pred_per):
-    
-   #df = bike_df[(bike_df['station_id'] == '7617.07')].copy()
-   #train_per = 80
-   #pred_per = 40
    
    splt_index = round(df.shape[0] * 0.8)
-   splt_offset = df.shape[0] - splt_index
    
    
+   # Train data prep
    train_df = df[:splt_index]
    t_idx = round(train_df.shape[0] * (1-train_per/100))
    train_df = train_df[t_idx:].copy()
@@ -126,7 +134,7 @@ def run_ets_model(df, train_per, pred_per):
    
    
    
-   #test_df = df[-splt_offset:]
+   # Test data prop
    test_df = df[splt_index:]
    t_idx = round(test_df.shape[0] * pred_per/100)
    test_df = test_df[:t_idx].copy()
@@ -134,6 +142,8 @@ def run_ets_model(df, train_per, pred_per):
    test.set_index('ride_date', inplace=True)
    test = test.resample('1H').sum()
 
+   
+   # Initialize and Fit Model
    hwm = ExponentialSmoothing(train, seasonal_periods=24*7, 
                               trend='add', 
                               seasonal='add', 
@@ -142,6 +152,7 @@ def run_ets_model(df, train_per, pred_per):
    
    hwm_pred = hwm.forecast(len(test))
 
+   # Process Return Dataframe
    hwm_df = pd.DataFrame(hwm_pred)
    hwm_df.columns = ['bikes_chng_pred']
    hwm_df.reset_index(inplace=True)
@@ -155,14 +166,13 @@ def run_ets_model(df, train_per, pred_per):
     
 
 
+##
+##  Neural Prophet Model
+##
 def run_prophet_model(df, train_per, pred_per):
     
-   # df = bike_df[(bike_df['station_id'] == '7617.07')].copy()
-   # train_per = 80
-   # pred_per = 40
    
    splt_index = round(df.shape[0] * 0.8)
-   splt_offset = df.shape[0] - splt_index
    
   
    train_df = df[:splt_index]
@@ -186,25 +196,15 @@ def run_prophet_model(df, train_per, pred_per):
    test.reset_index(inplace=True)
 
 
-   # t_df = df[['ride_date','bikes_chng']].copy()
-   # t_df.set_index('ride_date', inplace=True)
-   # t_df = t_df.resample('1H').sum()
-   # t_df.reset_index(inplace=True)
-   # t_df.rename({'bikes_chng': 'y',
-   #                  'ride_date': 'ds'}, axis=1, inplace=True)
-
-   # train = t_df[:splt_index]
-   # test = t_df[splt_index:]
-   
    
    # Prophet Forecast
    m = NeuralProphet(
-        yearly_seasonality=True,
-        weekly_seasonality=True,
+        yearly_seasonality=False,
+        weekly_seasonality=False,
         daily_seasonality=True
     )
    
-   metrics = m.fit(train, freq='H', validation_df=test, progress="plot")
+   m.fit(train, freq='H', validation_df=test, progress="plot")
    forecast = m.predict(test)
    
   
@@ -223,7 +223,11 @@ def run_prophet_model(df, train_per, pred_per):
 
 
 
-
+############################################################################
+##
+## COnfig and Data
+##
+############################################################################
 
 
 # Config 
@@ -250,7 +254,14 @@ station_df.rename(columns = {'station_id':'label',
 s = model_df.set_index('label')['value'].to_dict()
 
 
-# Dsiplay
+
+############################################################################
+##
+## Display
+##
+############################################################################
+
+
 app.layout = html.Div(id = 'parent', children = [
     html.H1(id = 'H1', children = 'DATA608 Final Project', style = {'textAlign':'center',
                                             'marginTop':20,'marginBottom':20,
@@ -265,8 +276,7 @@ app.layout = html.Div(id = 'parent', children = [
     ]),  
     
     
-    
-    
+ 
    
    html.Div([
        html.Div([
@@ -324,7 +334,14 @@ app.layout = html.Div(id = 'parent', children = [
         
     ],style = {'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,
               'font-size': 10,})
-    
+   
+               
+               
+############################################################################
+##
+## Callback
+##
+############################################################################              
     
 
 @app.callback(
@@ -338,18 +355,10 @@ app.layout = html.Div(id = 'parent', children = [
 )
 def graph_update(station_id,train_per,pred_per,model_id,n_clicks):
     
-    print(station_id)
-    print(type(station_id))
-    print(train_per)
-    print(pred_per)
-    print('model_id: ' + str(model_id))
-    print(type(model_id))
-    print(n_clicks)
-    print(ctx.triggered_id)
+
     
     
-    
-    #if (math.isnan(n_clicks)) :
+    # Look for submit button
     if not "button" == ctx.triggered_id:
         fig = px.line(height=400)
         fig.update_layout(template="simple_white", title="Citi Bike Forecast")
@@ -358,12 +367,17 @@ def graph_update(station_id,train_per,pred_per,model_id,n_clicks):
         return None, fig
     
     
+    model = model_df['value'][model_df['label'] == model_id].iloc[0]
+    station = station_df['value'][station_df['label'] == station_id].iloc[0]
+    title_str = station + ' - ' + model + ' [ train: ' + str(train_per) + '%, pred: ' + str(pred_per) + '%]' 
     
-    # filter
+    
+    # filter station
     b_df = bike_df[(bike_df['station_id'] == station_id)].copy()
     
     
-    # predictioin
+    
+    # model selection and predictioin
     if model_id == '1':
         pred_df = run_arima_model(b_df,train_per,pred_per)
     elif model_id == '2':
@@ -372,16 +386,17 @@ def graph_update(station_id,train_per,pred_per,model_id,n_clicks):
         pred_df = run_ets_model(b_df,train_per,pred_per)
     
     
-    # create 
-    #fig = px.line(bike_df, x='ride_date', y='bikes_chng', height=400) 
+    
+    # create graph
     fig = px.line(height=400)
     fig.add_scatter(x=pred_df['ride_date'], y=pred_df['bikes_chng'],
                     marker=dict(size=20, color="lightgray"), name='actual')
     fig.add_scatter(x=pred_df['ride_date'], y=pred_df['bikes_chng_pred'], name='forecast')
-    fig.update_layout(template="simple_white", title="Citi Bike Forecast")
+    fig.update_layout(template="simple_white", title=title_str)
     
     
     
+    # create daily dataframe and table
     pred_day_df = process_bike_table(pred_df)
     bike_table = create_table(pred_day_df)
 
@@ -389,10 +404,6 @@ def graph_update(station_id,train_per,pred_per,model_id,n_clicks):
     return bike_table, fig
     
    
-
-    
-
-
 
 if __name__ == '__main__': 
     app.run_server()
