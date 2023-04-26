@@ -262,12 +262,14 @@ bike_df = bike_df.sort_values('ride_date', ascending=True)
 model_df = pd.DataFrame({'label':['1','2','3'],
                          'value':['Auto SARIMA', 'NeuralProphet' , 'Exponential Smoothing']})
 
+
 station_df = bike_df[['station_id','station_name']].drop_duplicates(keep='first')
+station_df = station_df.sort_values('station_name', ascending=True)
+station_df.reset_index(inplace=True,drop=True)
+
 station_df.rename(columns = {'station_id':'label',
                              'station_name':'value'}, inplace = True)
 
-
-s = model_df.set_index('label')['value'].to_dict()
 
 
 
@@ -311,13 +313,13 @@ app.layout = html.Div(id = 'parent', children = [
        html.Div([
            html.Div(['Select Model:'], style={'text-align':'left'}),
            html.Div( dcc.Dropdown(options=model_df.set_index('label')['value'].to_dict(), id='model_id', 
-                                  value=1, clearable=False),),
+                                  value='3', clearable=False),),
         ], style ={'width':'30%','display':'inline-block'} ),  
        
        html.Div([
            html.Div(['Select Station:'], style={'text-align':'left'}),
            html.Div( dcc.Dropdown(options=station_df.set_index('label')['value'].to_dict(), id='station_id',
-                                  value='7617.07', clearable=False),),
+                                  value='6266.06', clearable=False),),
         ], style ={'width':'30%', 'display':'inline-block', } ),   
     ],style={'textAlign':'center','marginTop':20,'marginBottom':20,'marginLeft':20,'marginRight':20,'font-size': 10,}),   
    
@@ -370,8 +372,6 @@ app.layout = html.Div(id = 'parent', children = [
     Input('button', 'n_clicks'),
 )
 def graph_update(station_id,train_per,pred_per,model_id,n_clicks):
-    
-
     
     
     # Look for submit button
